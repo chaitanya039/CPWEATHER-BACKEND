@@ -4,6 +4,6 @@ const auth = require("../utils/auth");
 const { createPin, getPins } = require("../controllers/pinController");
 
 pinRoutes.post("/pins", auth, createPin);
-pinRoutes.get("/pins", auth, getPins);
+pinRoutes.get("/pins", getPins);
 
 module.exports = pinRoutes;

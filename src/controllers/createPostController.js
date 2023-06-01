@@ -5,12 +5,13 @@ const path = require("path");
 const Post = require("../Models/postSchema");
 const { body, validationResult } = require("express-validator");
 const { htmlToText } = require("html-to-text");
+const Comment = require("../Models/CommentSchema");
 
 module.exports.createPost = (req, res) =>
 {
     const form = formidable({ multiples : true });
     form.parse(req, async (error, fields, files) => {
-         const { title, description, body, slug, name, id } = fields;
+         const { title, description, body, slug, id } = fields;
          const errors = []; 
          
          if(title === "")
@@ -76,8 +77,7 @@ module.exports.createPost = (req, res) =>
                         body,
                         image : files.image.newFilename,
                         slug,
-                        userName : name,
-                        userId : id
+                        user : id
                      });
                      
                      return res.status(201).json({ msg : "Your post has been created successfully !", response });
@@ -101,9 +101,9 @@ module.exports.fetchPosts = async (req, res) =>
    
    try
    {
-      const count = await Post.find({ userId : id }).countDocuments();
+      const count = await Post.find({ user : id }).countDocuments();
       // Retrieving response of particular user based on userId of the user.
-      const response = await Post.find({ userId : id }).skip(skip).limit(perPage).sort({ updatedAt : -1 });
+      const response = await Post.find({ user : id }).skip(skip).limit(perPage).sort({ updatedAt : -1 });
       return res.status(200).json({response, count, perPage});
       
    }
@@ -258,6 +258,70 @@ module.exports.deletePost = async (req, res) =>
       const response = await Post.findByIdAndRemove(id);
       return res.status(200).json({ msg : "Your post has been deleted successfully !" });
       
+   }
+   catch(error)
+   {
+      return res.status(400).json({ errors : error, msg : error.message });
+   }
+}
+
+module.exports.allPosts = async (req, res) => 
+{
+   const { page } = req.params;
+   const perPage = 7;
+   const skip = (page - 1) * perPage;
+   
+   try
+   {
+      const count = await Post.find({}).countDocuments();
+      const response = await Post.find({}).limit(perPage).skip(skip).sort({ updatedAt : -1 }).populate("user", "_id firstName lastName email profilePicture");
+      return res.status(200).json({ response, perPage, count });
+   }
+   catch(error)
+   {
+      return res.status(400).json({ errors : error, msg : error.message });
+   }
+}
+
+module.exports.fetchDetails = async (req, res) => 
+{
+    const { id } = req.params;
+    
+    try
+    {
+      const response = await Post.find({ slug : id }).populate("user", "_id firstName lastName email profilePicture");
+      const post = response[0];
+      const comments = await Comment.find({ postId : post._id }).sort({ updatedAt : -1 }).populate("user", "_id firstName lastName email profilePicture");
+      return res.status(200).json({ post, comments });
+    }
+    catch(error)
+    {    
+      return res.status(400).json({ errors : error, msg : error.message });
+    }
+}
+
+module.exports.postComment = async (req, res) =>
+{
+   const { postId, comment, user } = req.body;
+   let errors = [];
+   try
+   {
+      if(comment === "")
+      {
+         errors.push({ msg : "Comment is required !" });
+      }
+      if(errors.length > 0)
+      {
+         return res.status(200).json({ errors });
+      }
+      
+      const response = await Comment.create({
+         postId,
+         user, 
+         comment
+      });
+      
+      return res.status(200).json({ msg : "Comment posted successfully !", response });
    }
    catch(error)
    {

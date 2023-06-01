@@ -23,13 +23,9 @@ const postSchema = new Schema(
             type : String,
             required : true
         },
-        userName : {
-            type : String,
-            required : true
-        },
-        userId : {
+        user : {
             type : Schema.Types.ObjectId,
-            ref : "user"
+            ref : "User"
         }
     }, { timestamps : true }
 );
