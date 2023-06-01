@@ -5,7 +5,7 @@ const path = require("path");
 const Post = require("../Models/postSchema");
 const { body, validationResult } = require("express-validator");
 const { htmlToText } = require("html-to-text");
-const Comment = require("../Models/CommentSchema");
+const Comment = require("../Models/commentSchema");
 
 module.exports.createPost = (req, res) =>
 {

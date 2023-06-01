@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "blog, weather, backend, api, project",
-    "start" : "node src/app.js",
+    "start": "node src/app.js",
     "server": "nodemon src/app.js  --ignore './client/'",
     "client": "cd.. && cd client && npm start",
     "clientInstall": "cd.. && cd client && npm install",
