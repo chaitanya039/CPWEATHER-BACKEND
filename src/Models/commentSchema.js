@@ -4,6 +4,7 @@ const { Schema } = require("mongoose");
 const commentSchema = new Schema({
     postId : {
         type : Schema.Types.ObjectId,
+        required : true,
         ref : "Post"
     },
     comment : {
@@ -12,6 +13,7 @@ const commentSchema = new Schema({
     },
     user : {
         type : Schema.Types.ObjectId,
+        required : true,
         ref : "User"
     }
 }, { timestamps : true });

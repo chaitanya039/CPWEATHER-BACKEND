@@ -285,11 +285,11 @@ module.exports.allPosts = async (req, res) =>
 
 module.exports.fetchDetails = async (req, res) => 
 {
-    const { id } = req.params;
+    const { slug } = req.params;
     
     try
     {
-      const response = await Post.find({ slug : id }).populate("user", "_id firstName lastName email profilePicture");
+      const response = await Post.find({ slug : slug }).populate("user", "_id firstName lastName email profilePicture");
       const post = response[0];
       const comments = await Comment.find({ postId : post._id }).sort({ updatedAt : -1 }).populate("user", "_id firstName lastName email profilePicture");
       return res.status(200).json({ post, comments });

@@ -10,7 +10,7 @@ postRoutes.post("/post/updateImage", auth, updatePostImage);
 postRoutes.get("/post/:id", auth, fetchPost);
 postRoutes.get("/post/delete/:id", auth, deletePost);
 postRoutes.get("/posts/:page", allPosts);
-postRoutes.get("/details/:id", fetchDetails);
+postRoutes.get("/details/:slug", fetchDetails);
 postRoutes.post("/details/comment", auth, postComment);
 
 

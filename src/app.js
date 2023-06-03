@@ -25,6 +25,7 @@ const port = process.env.PORT || 5000;
 connect();
 
 // Essential middlewares
+app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended : true }));
 
