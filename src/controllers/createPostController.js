@@ -64,8 +64,16 @@ module.exports.createPost = (req, res) =>
          // If no errors
          else
          {
-            const newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
-            
+            let newPath;
+            if(process.env.STATUS === "production")
+            {
+                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
+            }
+            else
+            {
+                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+            }
+    
             fs.copyFile(files.image.filepath, newPath, async (error) => {
                 if(!error)
                 {
@@ -204,7 +212,15 @@ module.exports.updatePostImage = (req, res) =>
       }
       else
       {
-         const newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+         let newPath;
+            if(process.env.STATUS === "production")
+            {
+                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
+            }
+            else
+            {
+                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+            }
          
          fs.copyFile(files.image.filepath, newPath, async (error) => {
             if(!error)

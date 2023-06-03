@@ -106,9 +106,15 @@ module.exports.updateProfilePicture = async (req, res) =>
         }
         else
          {
-            console.log("hii");
-            const newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
-            console.log(newPath);
+            let newPath;
+            if(process.env.STATUS === "production")
+            {
+                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
+            }
+            else
+            {
+                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+            }
             
             fs.copyFile(files.image.filepath, newPath, async (error) => {
                 if(!error)
