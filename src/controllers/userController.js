@@ -2,7 +2,11 @@ const User = require("../Models/userSchema");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const shortid = require("shortid");
-
+const formidable = require("formidable");
+const path = require("path");
+const fs = require("fs");
+const {  v4: uuidv4 } = require("uuid");
+const Contact = require("../Models/contactSchema");
 
 const generateJwtToken = (user) =>{
     return jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "7d" });
@@ -52,7 +56,7 @@ exports.register = async (req, res)=>{
             email,
             hash_password,
             contactNumber,
-            profilePicture : "profile.png",
+            profilePicture : "https://res.cloudinary.com/doj90b0q7/image/upload/v1688382501/CPWEATHER/profile.png",
             userName : shortid.generate()
         });
 
@@ -149,6 +153,46 @@ exports.login = async (req, res)=>{
         res.status(500).json(error.message);
     }
 };
+
+exports.contact = async (req, res) => {
+    const form = formidable({ multiples : true });
+    form.parse(req, async (error, fields, files) => {
+        const { firstName, lastName, email, message } = fields;
+        let isAttachment = false;
+        if(Object.keys(files).length !== 0)
+        {
+            isAttachment = true;
+            const type = files.attachment.mimetype;
+            const split = type.split("/");
+            const extension = split[1];
+            files.attachment.newFilename = uuidv4() + "." + extension;
+            const newPath = path.join(__dirname , `../../../client/src/uploads/${files.attachment.newFilename}`);
+            fs.copyFile(files.attachment.filepath, newPath, async (error) => {
+               if(error)
+               {
+                console.log(error);
+                  return res.status(400).json({ error, msg : "Failed to upload the attachment !" });
+               }
+            })
+        }
+        try
+        {
+            const response = await Contact.create({
+                firstName,
+                lastName,
+                email,
+                message,
+                attachment : isAttachment ? files.attachment.newFilename : ""
+            });
+            
+            return res.status(201).json({ msg : "Contact form submitted successfully !", response });
+        }
+        catch(error)
+        {
+            return res.status(500).json({ errors : error, msg : error.message })
+        }
+    })
+}
 
 // exports.logout = async (req, res)=>{
 //     res.clearCookie("token");

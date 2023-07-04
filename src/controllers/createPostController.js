@@ -6,6 +6,7 @@ const Post = require("../Models/postSchema");
 const { body, validationResult } = require("express-validator");
 const { htmlToText } = require("html-to-text");
 const Comment = require("../Models/commentSchema");
+const { cloudinary } = require("../config/cloudinary");
 
 module.exports.createPost = (req, res) =>
 {
@@ -64,16 +65,30 @@ module.exports.createPost = (req, res) =>
          // If no errors
          else
          {
-            let newPath;
-            if(process.env.STATUS === "production")
+            // Upload the images using cloudinary
+            try
             {
-                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
+               const upload = await cloudinary.uploader.upload(files.image.filepath, { upload_preset : "CPWEATHER" });
+               console.log(upload);
+               const response = await Post.create({
+                  title,
+                  description,
+                  body,
+                  image : upload.secure_url,
+                  slug,
+                  user : id
+               });
+               
+               return res.status(201).json({ msg : "Your post has been created successfully !", response });
             }
-            else
+            catch(error)
             {
-                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+               console.log(error);
+               return res.status(500).json({ errors : error, msg : error.message });
             }
-    
+            
+            /* const newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
+            
             fs.copyFile(files.image.filepath, newPath, async (error) => {
                 if(!error)
                 {
@@ -94,8 +109,8 @@ module.exports.createPost = (req, res) =>
                   {
                      return res.status(500).json({ errors : error, msg : error.message })
                   }
-                }
-            });
+                } 
+            }); */
          }
     });
 }
@@ -184,7 +199,6 @@ module.exports.updatePostImage = (req, res) =>
    const form = formidable({ multiples : true });
    form.parse(req, async (error, fields, files) => {
       let imageErrors = [];
-      console.log(fields);
       if(Object.keys(files).length === 0)
       {
          imageErrors.push({ msg : "Please choose image !" });
@@ -212,47 +226,27 @@ module.exports.updatePostImage = (req, res) =>
       }
       else
       {
-         let newPath;
-            if(process.env.STATUS === "production")
-            {
-                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
-            }
-            else
-            {
-                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
-            }
-         
-         fs.copyFile(files.image.filepath, newPath, async (error) => {
-            if(!error)
-            {
-              try
-              {
-               // Deleting existing file first.
-                 /*const deleteRes = await Post.findById(fields.id);
-                  fs.unlink(path.join(__dirname , `../../client/src/uploads/${deleteRes.image}`), async (error) => {
-                     if(!error)
-                     {
-                        const response = await Post.findByIdAndUpdate(fields.id, {
-                           image : files.image.newFilename
-                        });
-                        return res.status(200).json({ msg : "Post image has been updated successfully !", response });
-                     }
-                  });*/
+         try
+         {
+            const upload = await cloudinary.uploader.upload(files.image.filepath, { upload_preset : "CPWEATHER" });
+            const deleteResponse = await Post.findById(fields.id);
+            const publicIdToDelete = deleteResponse.image.split("/").slice(7, 9).join("/").split(".")[0];
+            console.log(publicIdToDelete);
+            const deleteUpload = await cloudinary.uploader.destroy(publicIdToDelete)
+            console.log(deleteUpload);
+            const response = await Post.findByIdAndUpdate(fields.id, {
+               image : upload.secure_url
+            });
+            
+            return res.status(200).json({ msg : "Post image has been updated successfully !", response });
                   
-                  const response = await Post.findByIdAndUpdate(fields.id, {
-                     image : files.image.newFilename
-                  });
-                  return res.status(200).json({ msg : "Post image has been updated successfully !", response });
-                  
-              }
-              catch(error)
-              {
+         }
+         catch(error)
+         {
                console.log(error);
-                 return res.status(500).json({ errors : error, msg : error.message })
-              }
-            }  
+               return res.status(500).json({ errors : error, msg : error.message })
+         }
       }
-      )}
    });
 }
 
@@ -263,17 +257,16 @@ module.exports.deletePost = async (req, res) =>
    try
    {
       // Deleting existing file first.
-      /*const deleteRes = await Post.findById(id);
-      fs.unlink(path.join(__dirname , `../../client/src/uploads/${deleteRes.image}`), async (error) => {
-         if(!error)
+      const deleteResponse = await Post.findById(id);
+      const publicIdToDelete = deleteResponse.image.split("/").slice(7, 9).join("/").split(".")[0];
+      console.log(publicIdToDelete);
+      await cloudinary.uploader.destroy(publicIdToDelete, async (error, result) => {
+         if(!error && result)
          {
             const response = await Post.findByIdAndRemove(id);
             return res.status(200).json({ msg : "Your post has been deleted successfully !" });
          }
-      });*/
-      const response = await Post.findByIdAndRemove(id);
-      return res.status(200).json({ msg : "Your post has been deleted successfully !" });
-      
+      });
    }
    catch(error)
    {

@@ -4,8 +4,7 @@ const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
 const formidable = require("formidable");
 const { v4: uuidv4 } = require('uuid');
-const fs = require("fs");
-const path = require("path");
+const { cloudinary } = require("../config/cloudinary");
 
 module.exports.updateName = async (req, res) => {
     let { firstName, lastName, id } = req.body;
@@ -83,7 +82,7 @@ module.exports.updatePassword = async (req, res) =>
 module.exports.updateProfilePicture = async (req, res) =>
 {
     const form = formidable({ multiples : true });
-    form.parse(req, (error, fields, files) => {
+    form.parse(req, async (error, fields, files) => {
         const errors = [];
         const type = files.image.mimetype;
         const split = type.split("/");
@@ -106,31 +105,27 @@ module.exports.updateProfilePicture = async (req, res) =>
         }
         else
          {
-            let newPath;
-            if(process.env.STATUS === "production")
+            try
             {
-                newPath = path.join(__dirname , `https://cpweather.netlify.app/src/uploads/${files.image.newFilename}`);
-            }
-            else
-            {
-                newPath = path.join(__dirname , `../../../client/src/uploads/${files.image.newFilename}`);
-            }
-            
-            fs.copyFile(files.image.filepath, newPath, async (error) => {
-                if(!error)
+                // Deleting existing file.
+                const deleteResponse = await User.findById(fields.userId);
+                const publicIdToDelete = deleteResponse.profilePicture.split("/").slice(7, 9).join("/").split(".")[0];
+                // If the profile picture is not already the profile png, then we delete existing.
+                if(publicIdToDelete !== "CPWEATHER/profile")
                 {
-                  try
-                  {
-                    const user = await User.findOneAndUpdate({_id : fields.userId}, { profilePicture : files.image.newFilename }, { new : true });
-                    const token = jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "7d" });
-                    return res.status(200).json({ token, msg : "Your profile picture has been changed !" });
-                  }
-                  catch(error)
-                  {
-                     return res.status(500).json({ errors : error, msg : error.message })
-                  }
+                    await cloudinary.uploader.destroy(publicIdToDelete);
                 }
-            });
+                // Uploading the new file.
+                const upload = await cloudinary.uploader.upload(files.image.filepath, { upload_preset : "CPWEATHER" });
+                const user = await User.findOneAndUpdate({_id : fields.userId}, { profilePicture : upload.secure_url }, { new : true });
+                const token = jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "7d" });
+                return res.status(200).json({ token, msg : "Your profile picture has been changed !" });
+            }
+            catch(error)
+            {
+                console.log(error);
+                return res.status(500).json({ errors : error, msg : error.message })
+            }
          }
     });
 }
